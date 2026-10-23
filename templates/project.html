@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Data & Kriteria • {{ project.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Konfigurasi Studi Kasus</div>
+    <h1 class="page-title">{{ project.name }}</h1>
+    <p class="page-subtitle">Kelola bobot, tipe kriteria, nama alternatif, dan nilai performa. Setelah data tersimpan, jalankan kalkulasi untuk memperoleh ranking prioritas penerima.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('index') }}" class="btn btn-light">Kembali</a>
+    <a href="{{ url_for('calculate_project', id=project.id) }}" class="btn btn-success">Hitung Hasil SMART</a>
+  </div>
+</div>
+
+<div class="info-strip mb-3"><div><strong>Sumber data:</strong> {{ data.get('source_title','-') }}. {{ data.get('source_authors','') }} DOI: {{ data.get('source_doi','-') }}.<br>{{ data.get('source_note','') }}</div></div>
+
+<section class="section-card surface">
+  <div class="section-head"><div><h3 class="section-title">Impor / Ekspor Data</h3><p class="section-desc">Format impor: kolom pertama = nama alternatif, kolom berikutnya = nilai tiap kriteria.</p></div></div>
+  <div class="data-toolbar">
+    <form action="{{ url_for('upload_file', id=project.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap align-items-end">
+      <div><label class="field-label">CSV / Excel</label><input type="file" name="file" class="form-control" accept=".csv,.xlsx" required></div>
+      <button class="btn btn-outline-primary" type="submit">Impor Data</button>
+    </form>
+    <a href="{{ url_for('export_excel', id=project.id) }}" class="btn btn-light">Ekspor Excel</a>
+  </div>
+</section>
+
+<form action="{{ url_for('update_data', id=project.id) }}" method="POST">
+<section class="section-card surface">
+  <div class="section-head">
+    <div><h3 class="section-title">Pembobotan</h3><p class="section-desc">Untuk studi kasus tugas ini gunakan Direct Rating agar bobot jurnal 25–20–10–25–20 dipertahankan.</p></div>
+    <div style="min-width:280px"><select name="weight_method" id="weightMethodSelect" class="form-select" onchange="handleWeightMethodChange()">
+      <option value="direct" {% if data.get('weight_method','direct') == 'direct' %}selected{% endif %}>Direct Rating</option>
+      <option value="equal" {% if data.get('weight_method') == 'equal' %}selected{% endif %}>Equal Weight</option>
+      <option value="roc" {% if data.get('weight_method') == 'roc' %}selected{% endif %}>Rank Order Centroid (ROC)</option>
+      <option value="swing" {% if data.get('weight_method') == 'swing' %}selected{% endif %}>Swing Weighting</option>
+    </select></div>
+  </div>
+  <div class="warning-strip info-strip"><div><strong>Catatan:</strong> C1 dan C4 diposisikan sebagai <em>benefit prioritas bantuan</em> agar kondisi rumah yang lebih tidak layak dan jarak yang lebih jauh meningkatkan skor kebutuhan. C2 (penghasilan) tetap cost.</div></div>
+</section>
+
+<section class="section-card surface">
+  <div class="section-head">
+    <div><h3 class="section-title">Matriks Alternatif × Kriteria</h3><p class="section-desc">Data awal berisi {{ data['alternatives']|length }} siswa dan {{ data['criteria']|length }} kriteria.</p></div>
+    <div class="d-flex gap-2"><button type="button" class="btn btn-light" onclick="addCriterion()">+ Kriteria</button><button type="button" class="btn btn-light" onclick="addAlternative()">+ Alternatif</button></div>
+  </div>
+
+  <div class="table-shell">
+    <table class="table matrix-table align-middle">
+      <thead><tr id="headerRow">
+        <th class="alt-cell">Alternatif / Siswa</th>
+        {% for c in data['criteria'] %}
+        <th class="criterion-box">
+          <div class="d-flex justify-content-between align-items-center mb-2"><span class="criterion-code">C{{ loop.index }}</span><button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="deleteCriterion(this)">Hapus</button></div>
+          <input type="text" name="criteria[]" value="{{ c }}" class="form-control form-control-sm mb-2" required>
+          <select name="types[]" class="form-select form-select-sm mb-2">
+            <option value="benefit" {% if data['types'][loop.index0] == 'benefit' %}selected{% endif %}>Benefit</option>
+            <option value="cost" {% if data['types'][loop.index0] == 'cost' %}selected{% endif %}>Cost</option>
+          </select>
+          <input type="number" name="weights[]" value="{{ data['weights'][loop.index0] }}" step="any" class="form-control form-control-sm" required>
+        </th>
+        {% endfor %}
+        <th id="actionHeader" style="width:86px">Aksi</th>
+      </tr></thead>
+      <tbody id="matrixBody">
+        {% for alt in data['alternatives'] %}{% set r = loop.index0 %}
+        <tr>
+          <td class="alt-cell"><input type="text" name="alternatives[]" value="{{ alt }}" class="form-control form-control-sm" required></td>
+          {% for c in data['criteria'] %}<td><input type="number" name="perf[]" value="{{ data['performance'][r][loop.index0] }}" step="any" class="form-control form-control-sm text-end" required></td>{% endfor %}
+          <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteAlternative(this)">Hapus</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-3"><button type="submit" class="btn btn-primary">Simpan Data & Konfigurasi</button><a href="{{ url_for('calculate_project', id=project.id) }}" class="btn btn-success">Simpan lalu Hitung*</a></div>
+  <div class="section-desc text-end mt-2">* Tombol Hitung memakai data terakhir yang sudah disimpan.</div>
+</section>
+</form>
+{% endblock %}
