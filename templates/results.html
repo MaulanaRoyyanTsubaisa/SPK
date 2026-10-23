@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Hasil SMART • {{ project.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">Hasil Perhitungan</div><h1 class="page-title">Ranking Prioritas Penerima</h1><p class="page-subtitle">Skor akhir dihitung dari nilai utility setiap kriteria dikalikan bobot ternormalisasi. Skor semakin besar berarti prioritas semakin tinggi.</p></div>
+  <div class="d-flex gap-2"><a href="{{ url_for('view_project', id=project.id) }}" class="btn btn-light">Kembali ke Data</a><a href="{{ url_for('export_excel', id=project.id) }}" class="btn btn-outline-primary">Ekspor Data</a></div>
+</div>
+
+<div class="rank-grid">
+  {% for idx in res['ranking_indices'][:3] %}
+  <div class="rank-card surface"><div class="rank-pos">Peringkat {{ loop.index }}</div><div class="rank-name">{{ data['alternatives'][idx] }}</div><div class="rank-score">{{ '%.4f'|format(res['final_scores'][idx]) }} <small>/ 1.0000</small></div></div>
+  {% endfor %}
+</div>
+
+<section class="section-card surface">
+  <div class="section-head"><div><h3 class="section-title">Bobot Ternormalisasi</h3><p class="section-desc">Total bobot = 1,00.</p></div></div>
+  <div class="weight-list">
+    {% for c in data['criteria'] %}<div class="weight-item"><div class="weight-name">C{{ loop.index }} • {{ c }}</div><div class="weight-value">{{ '%.0f'|format(res['normalized_weights'][loop.index0]*100) }}%</div><span class="badge-soft">{{ data['types'][loop.index0]|capitalize }}</span></div>{% endfor %}
+  </div>
+</section>
+
+<section class="section-card surface">
+  <div class="section-head"><div><h3 class="section-title">Tabel Ranking Lengkap</h3><p class="section-desc">Urutan otomatis berdasarkan nilai SMART terbesar.</p></div></div>
+  <div class="table-responsive">
+    <table class="table result-table align-middle mb-0"><thead><tr><th>Rank</th><th>Alternatif</th><th>Skor</th><th>Visual</th><th>Status</th></tr></thead><tbody>
+      {% for idx in res['ranking_indices'] %}{% set score = res['final_scores'][idx] %}
+      <tr><td><strong>#{{ loop.index }}</strong></td><td>{{ data['alternatives'][idx] }}</td><td><strong>{{ '%.4f'|format(score) }}</strong></td><td><div class="score-track"><div class="score-fill" style="width:{{ (score*100)|round(1) }}%"></div></div></td><td>{% if loop.index <= 3 %}<span class="badge-soft">Prioritas Utama</span>{% elif loop.index <= 7 %}<span class="badge-soft" style="background:#eef7f2;color:#12805c">Dipertimbangkan</span>{% else %}<span class="badge-soft" style="background:#f1f3f6;color:#697386">Prioritas Lanjutan</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+
+<section class="section-card surface">
+  <div class="section-head"><div><h3 class="section-title">Analisis Sensitivitas</h3><p class="section-desc">Simulasi perubahan bobot C1 terhadap 5 alternatif dengan ranking teratas.</p></div></div>
+  <img src="data:image/png;base64,{{ chart }}" alt="Grafik analisis sensitivitas" class="img-fluid rounded-3 border">
+</section>
+
+<section class="section-card surface">
+  <div class="section-head"><div><h3 class="section-title">Matriks Utility</h3><p class="section-desc">Nilai utility sudah berada pada skala 0–1 dan menjadi dasar pembentukan skor akhir.</p></div></div>
+  <div class="table-responsive"><table class="table result-table"><thead><tr><th>Alternatif</th>{% for c in data['criteria'] %}<th>C{{ loop.index }}</th>{% endfor %}<th>Skor Akhir</th></tr></thead><tbody>
+    {% for alt in data['alternatives'] %}{% set r=loop.index0 %}<tr><td>{{ alt }}</td>{% for c in data['criteria'] %}<td>{{ '%.4f'|format(res['utility_matrix'][r][loop.index0]) }}</td>{% endfor %}<td><strong>{{ '%.4f'|format(res['final_scores'][r]) }}</strong></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}
