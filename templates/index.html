@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard • SPK SMART{% endblock %}
+{% block content %}
+<section class="hero-panel surface">
+  <div class="hero-copy">
+    <div class="eyebrow">Sistem Pendukung Keputusan</div>
+    <h2>Rekomendasi Penerima Bantuan Sosial Pendidikan (PIP) Siswa SMK</h2>
+    <p>Aplikasi ini mengolah data siswa dengan metode <strong>SMART (Simple Multi Attribute Rating Technique)</strong>. Dataset awal diambil dari jurnal publik dan telah disiapkan dengan 15 alternatif, sehingga langsung memenuhi kebutuhan studi kasus tugas.</p>
+    <div class="hero-meta">
+      <span class="meta-item"><strong>Metode:</strong> SMART</span>
+      <span class="meta-item"><strong>Dataset:</strong> SMKN 2 Binjai 2024</span>
+      <span class="meta-item"><strong>Sumber:</strong> Jurnal Merkurius 2025</span>
+    </div>
+  </div>
+  <aside class="hero-aside">
+    <h3>Ringkasan Studi Kasus Utama</h3>
+    {% set primary = projects[0] if projects else none %}
+    <div class="quick-stat"><span>Alternatif siswa</span><strong>{{ primary.data_json['alternatives']|length if primary else 0 }}</strong></div>
+    <div class="quick-stat"><span>Kriteria</span><strong>{{ primary.data_json['criteria']|length if primary else 0 }}</strong></div>
+    <div class="quick-stat"><span>Total bobot</span><strong>{{ primary.data_json['weights']|sum|round(0)|int if primary else 0 }}%</strong></div>
+  </aside>
+</section>
+
+<div class="stat-grid">
+  <div class="stat-card surface"><div class="stat-label">Metode Keputusan</div><div class="stat-value">SMART</div><div class="stat-note">Utility + weighted score</div></div>
+  <div class="stat-card surface"><div class="stat-label">Data Awal</div><div class="stat-value">15</div><div class="stat-note">Alternatif siswa SMK</div></div>
+  <div class="stat-card surface"><div class="stat-label">Kriteria</div><div class="stat-value">5</div><div class="stat-note">Ekonomi, akademik & akses</div></div>
+  <div class="stat-card surface"><div class="stat-label">Status Dataset</div><div class="stat-value" style="font-size:20px">Jurnal</div><div class="stat-note">Dapat dicantumkan di manual book</div></div>
+</div>
+
+<section class="section-card surface">
+  <div class="section-head">
+    <div><h3 class="section-title">Studi Kasus</h3><p class="section-desc">Buka data, ubah bobot/kriteria bila diperlukan, lalu jalankan perhitungan SMART.</p></div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">+ Studi Kasus Baru</button>
+  </div>
+  <div class="case-grid">
+    {% for p in projects %}
+      <article class="case-card surface">
+        <div class="case-icon">{{ loop.index|string }}</div>
+        <h3>{{ p.name }}</h3>
+        <p>{{ p.description or 'Tidak ada deskripsi.' }}</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="badge-soft">{{ p.data_json['alternatives']|length }} alternatif</span>
+          <span class="badge-soft">{{ p.data_json['criteria']|length }} kriteria</span>
+        </div>
+        <div class="case-actions">
+          <a href="{{ url_for('view_project', id=p.id) }}" class="btn btn-outline-primary btn-sm">Buka & Edit Data</a>
+          <a href="{{ url_for('delete_project', id=p.id) }}" class="link-danger" onclick="return confirmDelete('Hapus studi kasus ini?')">Hapus</a>
+        </div>
+      </article>
+    {% else %}
+      <div class="info-strip">Belum ada studi kasus.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="modal fade" id="newProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form action="{{ url_for('create_project') }}" method="POST" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Buat Studi Kasus Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3"><label class="field-label">Nama Studi Kasus</label><input name="name" class="form-control" placeholder="Contoh: Seleksi Beasiswa SMK 2026" required></div>
+        <div><label class="field-label">Deskripsi</label><textarea name="description" class="form-control" rows="3" placeholder="Tujuan studi kasus"></textarea></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Buat Proyek</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
